@@ -172,49 +172,88 @@ int main(int argc, char **argv)
   ros::Rate loop_rate(10);
 // %EndTag(LOOP_RATE)%
 
-  /**
-   * A count of how many messages we have sent. This is used to create
-   * a unique string for each message.
-   */
-// %Tag(ROS_OK)%
-  int count = 0;
-  while (ros::ok())
-  {
-// %EndTag(ROS_OK)%
-    /**
-     * This is a message object. You stuff it with data, and then publish it.
-     */
-// %Tag(FILL_MESSAGE)%
-    std_msgs::String msg;
 
-    std::stringstream ss;
-    ss << "hello world " << count;
-    msg.data = ss.str();
-// %EndTag(FILL_MESSAGE)%
+ if (console::find_argument(argc, argv, "-h") >= 0)
+        {
+                printUsage(argv[0]);
+                return -1;
+        }
 
-// %Tag(ROSCONSOLE)%
-    ROS_INFO("%s", msg.data.c_str());
-// %EndTag(ROSCONSOLE)%
+        bool justVisualize(false);
+        string filename;
+        if (console::find_argument(argc, argv, "-v") >= 0)
+        {
+                if (argc != 3)
+                {
+                        printUsage(argv[0]);
+                        return -1;
+                }
 
-    /**
-     * The publish() function is how you send messages. The parameter
-     * is the message object. The type of this object must agree with the type
-     * given as a template parameter to the advertise<>() call, as was done
-     * in the constructor above.
-     */
-// %Tag(PUBLISH)%
-    chatter_pub.publish(msg);
-// %EndTag(PUBLISH)%
+                filename = argv[2];
+                justVisualize = true;
+        }
+        else if (argc != 1)
+        {
+                printUsage(argv[0]);
+                return -1;
+        }
 
-// %Tag(SPINONCE)%
-    ros::spinOnce();
-// %EndTag(SPINONCE)%
+        // First mode, open and show a cloud from disk.
+        if (justVisualize)
+        {
+                // Try with color information...
+                try
+                {
+                        io::loadPCDFile<PointXYZRGBA>(filename.c_str(), *cloudptr);
+                }
+                catch (PCLException e1)
+                {
+                        try
+                        {
+                                // ...and if it fails, fall back to just depth.
+                                io::loadPCDFile<PointXYZ>(filename.c_str(), *fallbackCloud);
+                        }
+                        catch (PCLException e2)
+                        {
+                                return -1;
+                        }
 
-// %Tag(RATE_SLEEP)%
-    loop_rate.sleep();
-// %EndTag(RATE_SLEEP)%
-    ++count;
-  }
+                        noColor = true;
+                }
+
+                cout << "Loaded " << filename << "." << endl;
+                if (noColor)
+                        cout << "This cloud has no RGBA color information present." << endl;
+                else cout << "This cloud has RGBA color information present." << endl;
+        }
+        // Second mode, start fetching and displaying frames from the device.
+        else
+        {
+                openniGrabber = new OpenNIGrabber();
+                if (openniGrabber == 0)
+                        return -1;
+                boost::function<void (const PointCloud<PointXYZRGBA>::ConstPtr&)> f =
+                        boost::bind(&grabberCallback, _1);
+                openniGrabber->registerCallback(f);
+        }
+
+        viewer = createViewer();
+
+        if (justVisualize)
+        {
+                if (noColor)
+                        viewer->showCloud(fallbackCloud);
+                else viewer->showCloud(cloudptr);
+        }
+        else openniGrabber->start();
+
+        // Main loop.
+        while (! viewer->wasStopped())
+                boost::this_thread::sleep(boost::posix_time::seconds(1));
+
+        if (! justVisualize)
+                openniGrabber->stop();
+
 
 
   return 0;
