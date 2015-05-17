@@ -12,6 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
 )
 
+find_package(PCL 1.7 REQUIRED)
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -123,11 +125,14 @@ include_directories(
 #   ${catkin_LIBRARIES}
 # )
 
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 add_executable(talker src/talker.cpp)
-target_link_libraries(talker ${catkin_LIBRARIES})
+target_link_libraries(talker ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 add_dependencies(talker beginner_tutorials_generate_messages_cpp)
 
 add_executable(listener src/listener.cpp)
@@ -135,6 +140,40 @@ target_link_libraries(listener ${catkin_LIBRARIES})
 add_dependencies(listener beginner_tutorials_generate_messages_cpp)
 
 # generate_messages()
+
+set(PCL_BUILD_TYPE Release)
+
+# file(GLOB PCL_openni_viewer_SRC
+#     "src/*.h"
+#     "src/*.cpp"
+# )
+
+# add_executable(openniViewer ${PCL_openni_viewer_SRC})
+
+# target_link_libraries (openniViewer ${PCL_LIBRARIES})
+
+
+
+##############
+## PCL TEST ##
+##############
+
+# find_package(PCL 1.7 REQUIRED)
+
+# include_directories(${PCL_INCLUDE_DIRS})
+# link_directories(${PCL_LIBRARY_DIRS})
+# add_definitions(${PCL_DEFINITIONS})
+
+# set(PCL_BUILD_TYPE Release)
+
+# file(GLOB PCL_openni_viewer_SRC
+#     "src/*.h"
+#     "src/*.cpp"
+# )
+# add_executable(openniViewer ${PCL_openni_viewer_SRC})
+
+# target_link_libraries (openniViewer ${PCL_LIBRARIES})
+
 
 #############
 ## Install ##
