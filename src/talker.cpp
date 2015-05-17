@@ -53,6 +53,8 @@ Grabber* openniGrabber;                                               // OpenNI 
 unsigned int filesSaved = 0;                                          // For the numbering of the clouds saved to disk.
 bool saveCloud(false), noColor(false);                                // Program control..
 
+ros::Publisher chatter_pub;
+
 void
 printUsage(const char* programName)
 {
@@ -86,7 +88,35 @@ grabberCallback(const PointCloud<PointXYZRGBA>::ConstPtr& cloud)
                 else PCL_ERROR("Problem saving %s.\n", filename.c_str());
 
                 saveCloud = false;
-        }
+        
+
+		//send ros message
+		std_msgs::String msg;
+
+   		std::stringstream ss;
+    		ss << "hello world ";
+    		msg.data = ss.str();
+		
+ROS_INFO("%s", msg.data.c_str());
+// %EndTag(ROSCONSOL
+    /**
+     * The publish() function is how you send messages. The parameter
+     * is the message object. The type of this object must agree with the type
+     * given as a template parameter to the advertise<>() call, as was done
+     * in the constructor above.
+     */
+
+
+// %Tag(PUBLISH)%
+   chatter_pub.publish(msg);
+// %EndTag(PUBLISH)%
+
+// %Tag(SPINONCE)%
+    ros::spinOnce();
+// %EndTag(SPINONCE)%
+
+
+	}
 }
 
 // For detecting when SPACE is pressed.
@@ -95,7 +125,9 @@ keyboardEventOccurred(const visualization::KeyboardEvent& event,
                                           void* nothing)
 {
         if (event.getKeySym() == "space" && event.keyDown())
-                saveCloud = true;
+        {
+	        saveCloud = true;
+	}
 }
 
 // Creates, initializes and returns a new viewer.
@@ -165,12 +197,9 @@ int main(int argc, char **argv)
    * buffer up before throwing some away.
    */
 // %Tag(PUBLISHER)%
-  ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
+  chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
 // %EndTag(PUBLISHER)%
 
-// %Tag(LOOP_RATE)%
-  ros::Rate loop_rate(10);
-// %EndTag(LOOP_RATE)%
 
 
  if (console::find_argument(argc, argv, "-h") >= 0)
@@ -184,7 +213,7 @@ int main(int argc, char **argv)
         if (console::find_argument(argc, argv, "-v") >= 0)
         {
                 if (argc != 3)
-                {
+             { 
                         printUsage(argv[0]);
                         return -1;
                 }
